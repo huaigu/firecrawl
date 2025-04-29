@@ -20,8 +20,10 @@ type Provider =
   | "deepinfra"
   | "vertex";
 
-const defaultProvider: Provider = process.env.DEFAULT_PROVIDER ?? (process.env.OLLAMA_BASE_URL ? "ollama" : "openai");
-
+  const defaultProvider: Provider = process.env.OLLAMA_BASE_URL
+  ? "ollama"
+  : "openai";
+  
 // OpenAI兼容服务配置
 const openaiClient = createOpenAI({
   baseURL: process.env.COMPATIBLE_API_BASE_URL,
