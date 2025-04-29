@@ -8,6 +8,7 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { fireworks } from "@ai-sdk/fireworks";
 import { deepinfra } from "@ai-sdk/deepinfra";
 import { createVertex } from "@ai-sdk/google-vertex";
+import { logger } from "./logger";
 
 type Provider =
   | "openai"
@@ -24,15 +25,23 @@ type Provider =
 const defaultProvider: Provider = process.env.COMPATIBLE_API_BASE_URL ? "openai" : (process.env.OLLAMA_BASE_URL ? "ollama" : "openai");
 
 // Debug环境变量
-console.log('Debug - Environment Variables:', {
-  COMPATIBLE_API_BASE_URL: process.env.COMPATIBLE_API_BASE_URL,
-  COMPATIBLE_API_KEY: process.env.COMPATIBLE_API_KEY,
-  COMPATIBLE_LARGE_MODEL_NAME: process.env.COMPATIBLE_LARGE_MODEL_NAME,
-  COMPATIBLE_SMALL_MODEL_NAME: process.env.COMPATIBLE_SMALL_MODEL_NAME,
+logger.info('Compatible API Configuration:', {
+  module: 'generic-ai',
+  method: 'initialization',
+  config: {
+    COMPATIBLE_API_BASE_URL: process.env.COMPATIBLE_API_BASE_URL,
+    COMPATIBLE_API_KEY: process.env.COMPATIBLE_API_KEY ? '***' + process.env.COMPATIBLE_API_KEY.slice(-4) : undefined,
+    COMPATIBLE_LARGE_MODEL_NAME: process.env.COMPATIBLE_LARGE_MODEL_NAME,
+    COMPATIBLE_SMALL_MODEL_NAME: process.env.COMPATIBLE_SMALL_MODEL_NAME,
+  }
 });
 
 // 检查必要的环境变量
 if (process.env.COMPATIBLE_API_BASE_URL && !process.env.COMPATIBLE_API_KEY) {
+  logger.error('COMPATIBLE_API_KEY is missing but COMPATIBLE_API_BASE_URL is set', {
+    module: 'generic-ai',
+    method: 'initialization',
+  });
   throw new Error('COMPATIBLE_API_KEY is required when COMPATIBLE_API_BASE_URL is set');
 }
 
