@@ -25,7 +25,7 @@ const defaultProvider: Provider = process.env.COMPATIBLE_API_BASE_URL ? "openai"
 
 // OpenAI兼容服务配置
 const openaiClient = createOpenAI({
-  baseURL: process.env.COMPATIBLE_API_BASE_URL || "https://api.openai.com/v1",
+  baseURL: process.env.COMPATIBLE_API_BASE_URL || "https://openrouter.ai/api/v1",
   apiKey: process.env.COMPATIBLE_API_KEY || process.env.OPENAI_API_KEY,
 });
 
