@@ -1,5 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { logger as baseLogger } from "./logger";
+import { LanguageModel } from "ai";
 
 const logger = {
   ...baseLogger,
@@ -51,7 +52,7 @@ const openAIClient = createOpenAI({
     : undefined,
 });
 
-export function getModel(name: string, provider: string = "openai") {
+export function getModel(name: string, provider: string = "openai"): LanguageModel {
   // 记录环境变量值
   logger.info("Compatible API Configuration:", {
     baseURL: process.env.COMPATIBLE_API_BASE_URL,
@@ -70,7 +71,11 @@ export function getModel(name: string, provider: string = "openai") {
     );
   }
 
-  return openAIClient;
+  return {
+    ...openAIClient,
+    provider: "openai",
+    modelId: name
+  };
 }
 
 export function getEmbeddingModel(
