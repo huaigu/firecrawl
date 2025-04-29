@@ -20,14 +20,13 @@ type Provider =
   | "deepinfra"
   | "vertex";
 
-  const defaultProvider: Provider = process.env.OLLAMA_BASE_URL
-  ? "ollama"
-  : "openai";
-  
+// 强制使用自定义的OpenAI兼容服务
+const defaultProvider: Provider = process.env.COMPATIBLE_API_BASE_URL ? "openai" : (process.env.OLLAMA_BASE_URL ? "ollama" : "openai");
+
 // OpenAI兼容服务配置
 const openaiClient = createOpenAI({
-  baseURL: process.env.COMPATIBLE_API_BASE_URL,
-  apiKey: process.env.COMPATIBLE_API_KEY,
+  baseURL: process.env.COMPATIBLE_API_BASE_URL || "https://api.openai.com/v1",
+  apiKey: process.env.COMPATIBLE_API_KEY || process.env.OPENAI_API_KEY,
 });
 
 const providerList: Record<Provider, any> = {
@@ -61,6 +60,11 @@ const providerList: Record<Provider, any> = {
 };
 
 export function getModel(name: string, provider: Provider = defaultProvider) {
+  // 如果设置了COMPATIBLE_API_BASE_URL，强制使用openai provider
+  if (process.env.COMPATIBLE_API_BASE_URL) {
+    return providerList['openai'](name);
+  }
+  
   if (provider === 'openai') {
     return providerList[provider](name);
   }
