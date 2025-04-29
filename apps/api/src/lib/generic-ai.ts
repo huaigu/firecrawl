@@ -23,10 +23,23 @@ type Provider =
 // 强制使用自定义的OpenAI兼容服务
 const defaultProvider: Provider = process.env.COMPATIBLE_API_BASE_URL ? "openai" : (process.env.OLLAMA_BASE_URL ? "ollama" : "openai");
 
+// Debug环境变量
+console.log('Debug - Environment Variables:', {
+  COMPATIBLE_API_BASE_URL: process.env.COMPATIBLE_API_BASE_URL,
+  COMPATIBLE_API_KEY: process.env.COMPATIBLE_API_KEY,
+  COMPATIBLE_LARGE_MODEL_NAME: process.env.COMPATIBLE_LARGE_MODEL_NAME,
+  COMPATIBLE_SMALL_MODEL_NAME: process.env.COMPATIBLE_SMALL_MODEL_NAME,
+});
+
+// 检查必要的环境变量
+if (process.env.COMPATIBLE_API_BASE_URL && !process.env.COMPATIBLE_API_KEY) {
+  throw new Error('COMPATIBLE_API_KEY is required when COMPATIBLE_API_BASE_URL is set');
+}
+
 // OpenAI兼容服务配置
 const openaiClient = createOpenAI({
   baseURL: process.env.COMPATIBLE_API_BASE_URL || "https://openrouter.ai/api/v1",
-  apiKey: process.env.COMPATIBLE_API_KEY || process.env.OPENAI_API_KEY,
+  apiKey: process.env.COMPATIBLE_API_KEY,
 });
 
 const providerList: Record<Provider, any> = {
