@@ -409,7 +409,7 @@ export function removeDefaultProperty_F0(schema: any): any {
 }
 
 export async function generateSchemaFromPrompt_F0(prompt: string): Promise<any> {
-  const model = getModel("gpt-4o");
+  const model = getModel("gpt-4o", "openai");
   const temperatures = [0, 0.1, 0.3]; // Different temperatures to try
   let lastError: Error | null = null;
 

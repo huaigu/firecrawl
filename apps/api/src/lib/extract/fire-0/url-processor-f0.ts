@@ -12,7 +12,7 @@ import { CostTracking } from "../extraction-service";
 
 export async function generateBasicCompletion_FO(prompt: string) {
   const { text } = await generateText({
-    model: getModel("gpt-4o"),
+    model: getModel("gpt-4o", "openai"),
     prompt: prompt,
     temperature: 0
   });
