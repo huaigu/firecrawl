@@ -71,11 +71,9 @@ export function getModel(name: string, provider: string = "openai"): LanguageMod
     );
   }
 
-  return {
-    ...openAIClient,
-    provider: "openai",
-    modelId: name
-  };
+  const model = openAIClient.languageModel(name);
+  
+  return model;
 }
 
 export function getEmbeddingModel(
