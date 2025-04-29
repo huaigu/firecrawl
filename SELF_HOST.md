@@ -56,9 +56,11 @@ USE_DB_AUTHENTICATION=false
 # MODEL_NAME=deepseek-r1:7b
 # MODEL_EMBEDDING_NAME=nomic-embed-text
 
-# Experimental: Use any OpenAI-compatible API
-# OPENAI_BASE_URL=https://example.com/v1
-# OPENAI_API_KEY=
+# Use any OpenAI-compatible API service
+# COMPATIBLE_API_BASE_URL=https://example.com/v1  # Base URL for OpenAI-compatible API service
+# COMPATIBLE_API_KEY=your-api-key                 # API key for the compatible service
+# COMPATIBLE_LARGE_MODEL_NAME=gpt-4               # Large model name for the compatible service
+# COMPATIBLE_SMALL_MODEL_NAME=gpt-3.5-turbo       # Small model name for the compatible service
 
 ## === Proxy ===
 # PROXY_SERVER can be a full URL (e.g. http://0.1.2.3:1234) or just an IP and port combo (e.g. 0.1.2.3:1234)
@@ -118,7 +120,7 @@ You should be able to see the Bull Queue Manager UI on `http://localhost:3002/ad
 
 4. *(Optional)* Test the API
 
-If you’d like to test the crawl endpoint, you can run this:
+If you'd like to test the crawl endpoint, you can run this:
 
   ```bash
   curl -X POST http://localhost:3002/v1/crawl \

@@ -1,4 +1,5 @@
 import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { createOllama } from "ollama-ai-provider";
 import { anthropic } from "@ai-sdk/anthropic";
 import { groq } from "@ai-sdk/groq";
@@ -18,12 +19,23 @@ type Provider =
   | "fireworks"
   | "deepinfra"
   | "vertex";
-const defaultProvider: Provider = process.env.OLLAMA_BASE_URL
-  ? "ollama"
-  : "openai";
+
+const defaultProvider: Provider = process.env.DEFAULT_PROVIDER ?? (process.env.OLLAMA_BASE_URL ? "ollama" : "openai");
+
+// OpenAI兼容服务配置
+const openaiClient = createOpenAI({
+  baseURL: process.env.COMPATIBLE_API_BASE_URL,
+  apiKey: process.env.COMPATIBLE_API_KEY,
+});
 
 const providerList: Record<Provider, any> = {
-  openai, //OPENAI_API_KEY
+  openai: (modelName: string) => {
+    // 根据modelName是否包含mini来选择不同的模型
+    const actualModelName = modelName.toLowerCase().includes('mini') 
+      ? process.env.COMPATIBLE_SMALL_MODEL_NAME 
+      : process.env.COMPATIBLE_LARGE_MODEL_NAME;
+    return openaiClient(actualModelName || modelName);
+  },
   ollama: createOllama({
     baseURL: process.env.OLLAMA_BASE_URL,
   }),
@@ -47,6 +59,9 @@ const providerList: Record<Provider, any> = {
 };
 
 export function getModel(name: string, provider: Provider = defaultProvider) {
+  if (provider === 'openai') {
+    return providerList[provider](name);
+  }
   return process.env.MODEL_NAME
     ? providerList[provider](process.env.MODEL_NAME)
     : providerList[provider](name);
