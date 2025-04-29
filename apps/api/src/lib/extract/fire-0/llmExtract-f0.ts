@@ -155,7 +155,7 @@ export async function generateCompletions_F0({
   markdown,
   previousWarning,
   isExtractEndpoint,
-  model = getModel("gpt-4o-mini"),
+  model = getModel("gpt-4o-mini", "openai"),
   mode = "object",
 }: {
   model?: LanguageModel; 

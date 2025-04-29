@@ -29,7 +29,7 @@ export async function checkShouldExtract_F0(
     },
     markdown: buildDocument(doc),
     isExtractEndpoint: true,
-    model: getModel("gpt-4o-mini"),
+    model: getModel("gpt-4o-mini", "openai"),
   });
 
   return {
