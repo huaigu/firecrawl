@@ -51,7 +51,7 @@ const openAIClient = createOpenAI({
     : undefined,
 });
 
-export function getModel(name: string, provider: string) {
+export function getModel(name: string, provider: string = "openai") {
   // 记录环境变量值
   logger.info("Compatible API Configuration:", {
     baseURL: process.env.COMPATIBLE_API_BASE_URL,
