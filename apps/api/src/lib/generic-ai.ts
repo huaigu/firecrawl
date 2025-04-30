@@ -18,9 +18,9 @@ type Provider =
   | "fireworks"
   | "deepinfra"
   | "vertex";
-const defaultProvider: Provider = process.env.OLLAMA_BASE_URL
+const defaultProvider: Provider = process.env.OPENROUTER_API_KEY
   ? "ollama"
-  : "openai";
+  : "openrouter";
 
 const providerList: Record<Provider, any> = {
   openai, //OPENAI_API_KEY
