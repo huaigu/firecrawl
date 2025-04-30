@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai";
+import { openai, createOpenAI } from "@ai-sdk/openai";
 import { createOllama } from "ollama-ai-provider";
 import { anthropic } from "@ai-sdk/anthropic";
 import { groq } from "@ai-sdk/groq";
@@ -20,7 +20,7 @@ type Provider =
   | "vertex";
 const defaultProvider: Provider = process.env.OPENROUTER_API_KEY
   ? "openrouter"
-  : "ollama";
+  : "deepseek";
 
 const providerList: Record<Provider, any> = {
   openai, //OPENAI_API_KEY
@@ -32,6 +32,10 @@ const providerList: Record<Provider, any> = {
   google, //GOOGLE_GENERATIVE_AI_API_KEY
   openrouter: createOpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY,
+  }),
+  deepseek: createOpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_BASE_URL,
   }),
   fireworks, //FIREWORKS_API_KEY
   deepinfra, //DEEPINFRA_API_KEY
