@@ -19,8 +19,8 @@ type Provider =
   | "deepinfra"
   | "vertex";
 const defaultProvider: Provider = process.env.OPENROUTER_API_KEY
-  ? "ollama"
-  : "openrouter";
+  ? "openrouter"
+  : "ollama";
 
 const providerList: Record<Provider, any> = {
   openai, //OPENAI_API_KEY
