@@ -118,7 +118,7 @@ You should be able to see the Bull Queue Manager UI on `http://localhost:3002/ad
 
 4. *(Optional)* Test the API
 
-If you’d like to test the crawl endpoint, you can run this:
+If you'd like to test the crawl endpoint, you can run this:
 
   ```bash
   curl -X POST http://localhost:3002/v1/crawl \
@@ -196,3 +196,23 @@ By addressing these common issues, you can ensure a smoother setup and operation
 ## Install Firecrawl on a Kubernetes Cluster (Simple Version)
 
 Read the [examples/kubernetes/cluster-install/README.md](https://github.com/mendableai/firecrawl/blob/main/examples/kubernetes/cluster-install/README.md) for instructions on how to install Firecrawl on a Kubernetes Cluster.
+
+## Using JavaScript SDK with Self-hosted Instance
+
+To use the JavaScript SDK (`@mendable/firecrawl-js`) with your self-hosted Firecrawl instance, you'll need to configure the SDK to point to your local instance:
+
+```javascript
+import FireCrawlApp from '@mendable/firecrawl-js';
+
+const app = new FireCrawlApp({
+    apiUrl: "http://localhost:3002",      // Your self-hosted Firecrawl URL
+    apiKey: "fc-xxx"                      // Optional: API key matching TEST_API_KEY in your .env
+});
+
+// Now you can use the SDK as normal
+await app.crawl({
+    url: "https://example.com"
+});
+```
+
+Note: The `apiKey` is optional when using a self-hosted instance unless you've enabled authentication by configuring Supabase in your environment.
