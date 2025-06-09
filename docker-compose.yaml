@@ -1,9 +1,10 @@
 name: firecrawl
 
-x-common-service: &common-service
+x-common-service:
   # NOTE: If you don't want to build the service locally,
   # uncomment the build: statement and comment out the image: statement
   # image: ghcr.io/mendableai/firecrawl
+  &common-service
   build: apps/api
 
   ulimits:
@@ -23,8 +24,8 @@ x-common-env: &common-env
   OPENAI_API_KEY: ${OPENAI_API_KEY}
   OPENAI_BASE_URL: ${OPENAI_BASE_URL}
   MODEL_NAME: ${MODEL_NAME}
-  MODEL_EMBEDDING_NAME: ${MODEL_EMBEDDING_NAME} 
-  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL} 
+  MODEL_EMBEDDING_NAME: ${MODEL_EMBEDDING_NAME}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
   SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
   BULL_AUTH_KEY: ${BULL_AUTH_KEY}
   TEST_API_KEY: ${TEST_API_KEY}
@@ -69,9 +70,15 @@ services:
     depends_on:
       - redis
       - playwright-service
-    ports:
-      - "${PORT:-3002}:${INTERNAL_PORT:-3002}"
     command: [ "pnpm", "run", "start:production" ]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.firecrawl.rule=Host(`firecrawl.your-domain.com`)"
+      - "traefik.http.services.firecrawl.loadbalancer.server.port=3002"
+    # 不需要明写 ports 映射（除非你本地测试），Traefik 通过 network 直接连容器
+    networks:
+      - backend
+      - traefik
 
   worker:
     <<: *common-service
@@ -98,3 +105,5 @@ services:
 networks:
   backend:
     driver: bridge
+  traefik:
+    external: true
