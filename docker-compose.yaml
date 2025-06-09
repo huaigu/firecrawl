@@ -72,12 +72,13 @@ services:
       - playwright-service
     command: [ "pnpm", "run", "start:production" ]
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.firecrawl.rule=Host(`firecrawl.your-domain.com`)"
+      - "traefik.http.routers.firecrawl.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.traefik.me`)"
+      - "traefik.http.routers.firecrawl.entrypoints=web"
       - "traefik.http.services.firecrawl.loadbalancer.server.port=3002"
+      - "traefik.docker.network=dokploy-network"
     # 不需要明写 ports 映射（除非你本地测试），Traefik 通过 network 直接连容器
-    networks: 
-      - backend 
+    networks:
+      - backend
       - dokploy-network
 
   worker:
