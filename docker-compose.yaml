@@ -78,6 +78,7 @@ services:
       - "traefik.docker.network=dokploy-network"
     # 不需要明写 ports 映射（除非你本地测试），Traefik 通过 network 直接连容器
     networks:
+      - backend
       - dokploy-network
 
   worker:
