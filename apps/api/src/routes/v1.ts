@@ -35,6 +35,7 @@ import { generateLLMsTextStatusController } from "../controllers/v1/generate-llm
 import { deepResearchController } from "../controllers/v1/deep-research";
 import { deepResearchStatusController } from "../controllers/v1/deep-research-status";
 import { tokenUsageController } from "../controllers/v1/token-usage";
+import { ongoingCrawlsController } from "../controllers/v1/crawl-ongoing";
 
 function checkCreditsMiddleware(
   minimum?: number,
@@ -90,19 +91,20 @@ function checkCreditsMiddleware(
 }
 
 export function authMiddleware(
-  rateLimiterMode: RateLimiterMode,
+  rateLimiterMode: RateLimiterMode
 ): (req: RequestWithMaybeAuth, res: Response, next: NextFunction) => void {
   return (req, res, next) => {
     (async () => {
-      if (rateLimiterMode === RateLimiterMode.Extract && isAgentExtractModelValid((req.body as any)?.agent?.model)) {
-        rateLimiterMode = RateLimiterMode.ExtractAgentPreview;
+      let currentRateLimiterMode = rateLimiterMode;
+      if (currentRateLimiterMode === RateLimiterMode.Extract && isAgentExtractModelValid((req.body as any)?.agent?.model)) {
+        currentRateLimiterMode = RateLimiterMode.ExtractAgentPreview;
       }
 
-      // if (rateLimiterMode === RateLimiterMode.Scrape && isAgentExtractModelValid((req.body as any)?.agent?.model)) {
-      //   rateLimiterMode = RateLimiterMode.ScrapeAgentPreview;
+      // if (currentRateLimiterMode === RateLimiterMode.Scrape && isAgentExtractModelValid((req.body as any)?.agent?.model)) {
+      //   currentRateLimiterMode = RateLimiterMode.ScrapeAgentPreview;
       // }
 
-      const auth = await authenticateUser(req, res, rateLimiterMode);
+      const auth = await authenticateUser(req, res, currentRateLimiterMode);
 
       if (!auth.success) {
         if (!res.headersSent) {
@@ -147,8 +149,8 @@ function idempotencyMiddleware(
   })().catch((err) => next(err));
 }
 
-function blocklistMiddleware(req: Request, res: Response, next: NextFunction) {
-  if (typeof req.body.url === "string" && isUrlBlocked(req.body.url)) {
+function blocklistMiddleware(req: RequestWithACUC<any, any, any>, res: Response, next: NextFunction) {
+  if (typeof req.body.url === "string" && isUrlBlocked(req.body.url, req.acuc?.flags ?? null)) {
     if (!res.headersSent) {
       return res.status(403).json({
         success: false,
@@ -213,6 +215,12 @@ v1Router.post(
 );
 
 v1Router.get(
+  "/crawl/ongoing",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(ongoingCrawlsController),
+);
+
+v1Router.get(
   "/crawl/:jobId",
   authMiddleware(RateLimiterMode.CrawlStatus),
   wrap(crawlStatusController),
@@ -267,6 +275,7 @@ v1Router.get(
 v1Router.post(
   "/llmstxt",
   authMiddleware(RateLimiterMode.Scrape),
+  blocklistMiddleware,
   wrap(generateLLMsTextController),
 );
 
@@ -293,6 +302,12 @@ v1Router.get(
 
 v1Router.delete(
   "/crawl/:jobId",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  crawlCancelController,
+);
+
+v1Router.delete(
+  "/batch/scrape/:jobId",
   authMiddleware(RateLimiterMode.CrawlStatus),
   crawlCancelController,
 );

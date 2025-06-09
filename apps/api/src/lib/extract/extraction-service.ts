@@ -36,7 +36,7 @@ import { getCachedDocs, saveCachedDocs } from "./helpers/cached-docs";
 import { normalizeUrl } from "../canonical-url";
 import { search } from "../../search";
 import { buildRephraseToSerpPrompt } from "./build-prompts";
-
+import { getACUCTeam } from "../../controllers/auth";
 interface ExtractServiceOptions {
   request: ExtractRequest;
   teamId: string;
@@ -134,6 +134,7 @@ export async function performExtraction(
   let sources: Record<string, string[]> = {};
 
   let costTracking = new CostTracking(subId ? null : 1.5);
+  const acuc = await getACUCTeam(teamId);
 
   let log = {
     extractId,
@@ -184,6 +185,7 @@ export async function performExtraction(
         url: request.urls?.join(", ") || "",
         scrapeOptions: request,
         origin: request.origin ?? "api",
+        integration: request.integration,
         num_tokens: 0,
         tokens_billed,
         sources,
@@ -323,6 +325,7 @@ export async function performExtraction(
         },
         logger.child({ module: "extract", method: "processUrl", url }),
         costTracking,
+        acuc?.flags ?? null,
       ),
     );
 
@@ -401,7 +404,7 @@ export async function performExtraction(
             {
               url,
               teamId,
-              origin: request.origin || "api",
+              origin: "extract",
               timeout,
             },
             urlTraces,
@@ -678,6 +681,7 @@ export async function performExtraction(
           url: request.urls?.join(", ") || "",
           scrapeOptions: request,
           origin: request.origin ?? "api",
+          integration: request.integration,
           num_tokens: 0,
           tokens_billed,
           sources,
@@ -734,7 +738,7 @@ export async function performExtraction(
             {
               url,
               teamId,
-              origin: request.origin || "api",
+              origin: "extract",
               timeout,
             },
             urlTraces,
@@ -785,6 +789,7 @@ export async function performExtraction(
           url: request.urls?.join(", ") || "",
           scrapeOptions: request,
           origin: request.origin ?? "api",
+          integration: request.integration,
           num_tokens: 0,
           tokens_billed,
           sources,
@@ -825,6 +830,7 @@ export async function performExtraction(
           url: request.urls?.join(", ") || "",
           scrapeOptions: request,
           origin: request.origin ?? "api",
+          integration: request.integration,
           num_tokens: 0,
           tokens_billed,
           sources,
@@ -1009,6 +1015,7 @@ export async function performExtraction(
       url: request.urls?.join(", ") || "",
       scrapeOptions: request,
       origin: request.origin ?? "api",
+      integration: request.integration,
       num_tokens: totalTokensUsed,
       tokens_billed: tokensToBill,
       sources,
@@ -1077,6 +1084,7 @@ export async function performExtraction(
       url: request.urls?.join(", ") || "",
       scrapeOptions: request,
       origin: request.origin ?? "api",
+      integration: request.integration,
       num_tokens: 0,
       tokens_billed,
       sources,

@@ -7,7 +7,7 @@ import { getURLDepth } from "./utils/maxDepthUtils";
 import { axiosTimeout } from "../../lib/timeout";
 import { logger as _logger } from "../../lib/logger";
 import https from "https";
-import { redisConnection } from "../../services/queue-service";
+import { redisEvictConnection } from "../../services/redis";
 import { extractLinks } from "../../lib/html-transformer";
 import { TimeoutSignal } from "../../controllers/v1/types";
 export class WebCrawler {
@@ -23,6 +23,7 @@ export class WebCrawler {
   private limit: number;
   private robotsTxtUrl: string;
   public robots: Robot;
+  private robotsCrawlDelay: number | null = null;
   private generateImgAltText: boolean;
   private allowBackwardCrawling: boolean;
   private allowExternalContentLinks: boolean;
@@ -243,6 +244,12 @@ export class WebCrawler {
 
   public importRobotsTxt(txt: string) {
     this.robots = robotsParser(this.robotsTxtUrl, txt);
+    const delay = this.robots.getCrawlDelay("FireCrawlAgent") || this.robots.getCrawlDelay("FirecrawlAgent");
+    this.robotsCrawlDelay = delay !== undefined ? delay : null;
+  }
+  
+  public getRobotsCrawlDelay(): number | null {
+    return this.robotsCrawlDelay;
   }
 
   public async tryGetSitemap(
@@ -268,7 +275,7 @@ export class WebCrawler {
 
     const _urlsHandler = async (urls: string[]) => {
       if (fromMap && onlySitemap) {
-        return urlsHandler(urls);
+        return await urlsHandler(urls);
       } else {
         let filteredLinks = this.filterLinks(
           [...new Set(urls)].filter(x => this.filterURL(x, this.initialUrl) !== null),
@@ -280,7 +287,7 @@ export class WebCrawler {
         let uniqueURLs: string[] = [];
         for (const url of filteredLinks) {
           if (
-            await redisConnection.sadd(
+            await redisEvictConnection.sadd(
               "sitemap:" + this.jobId + ":links",
               normalizeUrl(url),
             )
@@ -289,13 +296,13 @@ export class WebCrawler {
           }
         }
 
-        await redisConnection.expire(
+        await redisEvictConnection.expire(
           "sitemap:" + this.jobId + ":links",
           3600,
           "NX",
         );
         if (uniqueURLs.length > 0) {
-          return urlsHandler(uniqueURLs);
+          return await urlsHandler(uniqueURLs);
         }
       }
     };
@@ -317,7 +324,7 @@ export class WebCrawler {
 
       if (count > 0) {
         if (
-          await redisConnection.sadd(
+          await redisEvictConnection.sadd(
             "sitemap:" + this.jobId + ":links",
             normalizeUrl(this.initialUrl),
           )
@@ -326,6 +333,12 @@ export class WebCrawler {
         }
         count++;
       }
+
+      await redisEvictConnection.expire(
+        "sitemap:" + this.jobId + ":links",
+        3600,
+        "NX",
+      );
 
       return count;
     } catch (error) {
@@ -377,11 +390,11 @@ export class WebCrawler {
         !this.isRobotsAllowed(fullUrl, this.ignoreRobotsTxt)
       ) {
         (async () => {
-          await redisConnection.sadd(
+          await redisEvictConnection.sadd(
             "crawl:" + this.jobId + ":robots_blocked",
             fullUrl,
           );
-          await redisConnection.expire(
+          await redisEvictConnection.expire(
             "crawl:" + this.jobId + ":robots_blocked",
             24 * 60 * 60,
           );

@@ -133,16 +133,26 @@ export async function extractMetadata(
       // Extract all meta tags for custom metadata
       soup("meta").each((i, elem) => {
         try {
-          const name = soup(elem).attr("name") || soup(elem).attr("property");
+          const name = soup(elem).attr("name") || soup(elem).attr("property") || soup(elem).attr("itemprop");
           const content = soup(elem).attr("content");
 
           if (name && content) {
-            if (customMetadata[name] === undefined) {
-              customMetadata[name] = content;
-            } else if (Array.isArray(customMetadata[name])) {
-              (customMetadata[name] as string[]).push(content);
+            if (name === "description") {
+              if (customMetadata[name] === undefined) {
+                customMetadata[name] = content;
+              } else {
+                customMetadata[name] = Array.isArray(customMetadata[name]) 
+                  ? [...customMetadata[name] as string[], content].join(", ") 
+                  : `${customMetadata[name]}, ${content}`;
+              }
             } else {
-              customMetadata[name] = [customMetadata[name] as string, content];
+              if (customMetadata[name] === undefined) {
+                customMetadata[name] = content;
+              } else if (Array.isArray(customMetadata[name])) {
+                (customMetadata[name] as string[]).push(content);
+              } else {
+                customMetadata[name] = [customMetadata[name] as string, content];
+              }
             }
           }
         } catch (error) {

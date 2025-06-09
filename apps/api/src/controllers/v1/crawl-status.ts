@@ -22,7 +22,7 @@ import { configDotenv } from "dotenv";
 import type { Job, JobState, Queue } from "bullmq";
 import { logger } from "../../lib/logger";
 import { supabase_rr_service, supabase_service } from "../../services/supabase";
-import { getConcurrencyLimitedJobs } from "../../lib/concurrency-limit";
+import { getConcurrencyLimitedJobs, getCrawlConcurrencyLimitedJobs } from "../../lib/concurrency-limit";
 import { getJobFromGCS } from "../../lib/gcs-jobs";
 configDotenv();
 
@@ -33,11 +33,12 @@ export type PseudoJob<T> = {
   timestamp: number,
   data: {
     scrapeOptions: any,
+    teamId?: string,
   },
   failedReason?: string,
 }
 
-export type DBJob = { docs: any, success: boolean, page_options: any, date_added: any, message: string | null }
+export type DBJob = { docs: any, success: boolean, page_options: any, date_added: any, message: string | null, team_id: string}
 
 export async function getJob(id: string): Promise<PseudoJob<any> | null> {
   const [bullJob, dbJob, gcsJob] = await Promise.all([
@@ -157,7 +158,9 @@ export async function crawlStatusController(
     ),
   );
 
-  const throttledJobsSet = await getConcurrencyLimitedJobs(req.auth.team_id);
+  const teamThrottledJobsSet = await getConcurrencyLimitedJobs(req.auth.team_id);
+  const crawlThrottledJobsSet = sc.crawlerOptions?.delay ? await getCrawlConcurrencyLimitedJobs(req.params.jobId) : new Set();
+  const throttledJobsSet = new Set([...teamThrottledJobsSet, ...crawlThrottledJobsSet]);
 
   const validJobStatuses: [string, JobState | "unknown"][] = [];
   const validJobIDs: string[] = [];

@@ -49,6 +49,12 @@ export class RemoveFeatureError extends Error {
   }
 }
 
+export class SSLError extends Error {
+  constructor() {
+    super("An SSL error occurred while scraping the URL. If you're not inputting any sensitive data, try scraping with `skipTlsVerification: true`.");
+  }
+}
+
 export class SiteError extends Error {
   public code: string;
   constructor(code: string) {
@@ -78,5 +84,17 @@ export class UnsupportedFileError extends Error {
 export class PDFAntibotError extends Error {
   constructor() {
     super("PDF scrape was prevented by anti-bot")
+  }
+}
+
+export class PDFInsufficientTimeError extends Error {
+  constructor(pageCount: number, minTimeout: number) {
+    super(`Insufficient time to process PDF of ${pageCount} pages. Please increase the timeout parameter in your scrape request to at least ${minTimeout}ms.`);
+  }
+}
+
+export class IndexMissError extends Error {
+  constructor() {
+    super("Index doesn't have the page we're looking for");
   }
 }

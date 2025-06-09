@@ -140,6 +140,7 @@ class ChangeTrackingOptions(pydantic.BaseModel):
     modes: Optional[List[Literal["git-diff", "json"]]] = None
     schema: Optional[Any] = None
     prompt: Optional[str] = None
+    tag: Optional[str] = None
 
 class ScrapeOptions(pydantic.BaseModel):
     """Parameters for scraping operations."""
@@ -155,13 +156,15 @@ class ScrapeOptions(pydantic.BaseModel):
     skipTlsVerification: Optional[bool] = None
     removeBase64Images: Optional[bool] = None
     blockAds: Optional[bool] = None
-    proxy: Optional[Literal["basic", "stealth"]] = None
+    proxy: Optional[Literal["basic", "stealth", "auto"]] = None
     changeTrackingOptions: Optional[ChangeTrackingOptions] = None
+    maxAge: Optional[int] = None
+    storeInCache: Optional[bool] = None
 
 class WaitAction(pydantic.BaseModel):
     """Wait action to perform during scraping."""
     type: Literal["wait"]
-    milliseconds: int
+    milliseconds: Optional[int] = None
     selector: Optional[str] = None
 
 class ScreenshotAction(pydantic.BaseModel):
@@ -259,6 +262,7 @@ class CrawlParams(pydantic.BaseModel):
     deduplicateSimilarURLs: Optional[bool] = None
     ignoreQueryParameters: Optional[bool] = None
     regexOnFullURL: Optional[bool] = None
+    delay: Optional[int] = None  # Delay in seconds between scrapes
 
 class CrawlResponse(pydantic.BaseModel):
     """Response from crawling operations."""
@@ -291,6 +295,7 @@ class MapParams(pydantic.BaseModel):
     sitemapOnly: Optional[bool] = None
     limit: Optional[int] = None
     timeout: Optional[int] = None
+    useIndex: Optional[bool] = None
 
 class MapResponse(pydantic.BaseModel):
     """Response from mapping operations."""
@@ -346,6 +351,7 @@ class GenerateLLMsTextParams(pydantic.BaseModel):
     """
     maxUrls: Optional[int] = 10
     showFullText: Optional[bool] = False
+    cache: Optional[bool] = True
     __experimental_stream: Optional[bool] = None
 
 class DeepResearchParams(pydantic.BaseModel):
@@ -457,11 +463,13 @@ class FirecrawlApp:
             skip_tls_verification: Optional[bool] = None,
             remove_base64_images: Optional[bool] = None,
             block_ads: Optional[bool] = None,
-            proxy: Optional[Literal["basic", "stealth"]] = None,
+            proxy: Optional[Literal["basic", "stealth", "auto"]] = None,
             extract: Optional[JsonConfig] = None,
             json_options: Optional[JsonConfig] = None,
             actions: Optional[List[Union[WaitAction, ScreenshotAction, ClickAction, WriteAction, PressAction, ScrollAction, ScrapeAction, ExecuteJavascriptAction]]] = None,
             change_tracking_options: Optional[ChangeTrackingOptions] = None,
+            max_age: Optional[int] = None,
+            store_in_cache: Optional[bool] = None,
             **kwargs) -> ScrapeResponse[Any]:
         """
         Scrape and extract content from a URL.
@@ -479,7 +487,7 @@ class FirecrawlApp:
           skip_tls_verification (Optional[bool]): Skip TLS verification
           remove_base64_images (Optional[bool]): Remove base64 images
           block_ads (Optional[bool]): Block ads
-          proxy (Optional[Literal["basic", "stealth"]]): Proxy type (basic/stealth)
+          proxy (Optional[Literal["basic", "stealth", "auto"]]): Proxy type (basic/stealth)
           extract (Optional[JsonConfig]): Content extraction settings
           json_options (Optional[JsonConfig]): JSON extraction settings
           actions (Optional[List[Union[WaitAction, ScreenshotAction, ClickAction, WriteAction, PressAction, ScrollAction, ScrapeAction, ExecuteJavascriptAction]]]): Actions to perform
@@ -543,6 +551,10 @@ class FirecrawlApp:
             scrape_params['actions'] = [action if isinstance(action, dict) else action.dict(exclude_none=True) for action in actions]
         if change_tracking_options:
             scrape_params['changeTrackingOptions'] = change_tracking_options if isinstance(change_tracking_options, dict) else change_tracking_options.dict(exclude_none=True)
+        if max_age is not None:
+            scrape_params['maxAge'] = max_age
+        if store_in_cache is not None:
+            scrape_params['storeInCache'] = store_in_cache
         
         scrape_params.update(kwargs)
 
@@ -681,6 +693,7 @@ class FirecrawlApp:
         deduplicate_similar_urls: Optional[bool] = None,
         ignore_query_parameters: Optional[bool] = None,
         regex_on_full_url: Optional[bool] = None,
+        delay: Optional[int] = None,
         poll_interval: Optional[int] = 2,
         idempotency_key: Optional[str] = None,
         **kwargs
@@ -703,6 +716,7 @@ class FirecrawlApp:
             deduplicate_similar_urls (Optional[bool]): Remove similar URLs
             ignore_query_parameters (Optional[bool]): Ignore URL parameters
             regex_on_full_url (Optional[bool]): Apply regex to full URLs
+            delay (Optional[int]): Delay in seconds between scrapes
             poll_interval (Optional[int]): Seconds between status checks (default: 2)
             idempotency_key (Optional[str]): Unique key to prevent duplicate requests
             **kwargs: Additional parameters to pass to the API
@@ -748,6 +762,8 @@ class FirecrawlApp:
             crawl_params['ignoreQueryParameters'] = ignore_query_parameters
         if regex_on_full_url is not None:
             crawl_params['regexOnFullURL'] = regex_on_full_url
+        if delay is not None:
+            crawl_params['delay'] = delay
 
         # Add any additional kwargs
         crawl_params.update(kwargs)
@@ -788,6 +804,7 @@ class FirecrawlApp:
         deduplicate_similar_urls: Optional[bool] = None,
         ignore_query_parameters: Optional[bool] = None,
         regex_on_full_url: Optional[bool] = None,
+        delay: Optional[int] = None,
         idempotency_key: Optional[str] = None,
         **kwargs
     ) -> CrawlResponse:
@@ -854,6 +871,8 @@ class FirecrawlApp:
             crawl_params['ignoreQueryParameters'] = ignore_query_parameters
         if regex_on_full_url is not None:
             crawl_params['regexOnFullURL'] = regex_on_full_url
+        if delay is not None:
+            crawl_params['delay'] = delay
 
         # Add any additional kwargs
         crawl_params.update(kwargs)
@@ -1093,6 +1112,7 @@ class FirecrawlApp:
             sitemap_only: Optional[bool] = None,
             limit: Optional[int] = None,
             timeout: Optional[int] = None,
+            use_index: Optional[bool] = None,
             **kwargs) -> MapResponse:
         """
         Map and discover links from a URL.
@@ -1135,7 +1155,9 @@ class FirecrawlApp:
             map_params['limit'] = limit
         if timeout is not None:
             map_params['timeout'] = timeout
-
+        if use_index is not None:
+            map_params['useIndex'] = use_index
+        
         # Add any additional kwargs
         map_params.update(kwargs)
 
@@ -1182,7 +1204,7 @@ class FirecrawlApp:
         skip_tls_verification: Optional[bool] = None,
         remove_base64_images: Optional[bool] = None,
         block_ads: Optional[bool] = None,
-        proxy: Optional[Literal["basic", "stealth"]] = None,
+        proxy: Optional[Literal["basic", "stealth", "auto"]] = None,
         extract: Optional[JsonConfig] = None,
         json_options: Optional[JsonConfig] = None,
         actions: Optional[List[Union[WaitAction, ScreenshotAction, ClickAction, WriteAction, PressAction, ScrollAction, ScrapeAction, ExecuteJavascriptAction]]] = None,
@@ -1316,7 +1338,7 @@ class FirecrawlApp:
         skip_tls_verification: Optional[bool] = None,
         remove_base64_images: Optional[bool] = None,
         block_ads: Optional[bool] = None,
-        proxy: Optional[Literal["basic", "stealth"]] = None,
+        proxy: Optional[Literal["basic", "stealth", "auto"]] = None,
         extract: Optional[JsonConfig] = None,
         json_options: Optional[JsonConfig] = None,
         actions: Optional[List[Union[WaitAction, ScreenshotAction, ClickAction, WriteAction, PressAction, ScrollAction, ScrapeAction, ExecuteJavascriptAction]]] = None,
@@ -1448,7 +1470,7 @@ class FirecrawlApp:
         skip_tls_verification: Optional[bool] = None,
         remove_base64_images: Optional[bool] = None,
         block_ads: Optional[bool] = None,
-        proxy: Optional[Literal["basic", "stealth"]] = None,
+        proxy: Optional[Literal["basic", "stealth", "auto"]] = None,
         extract: Optional[JsonConfig] = None,
         json_options: Optional[JsonConfig] = None,
         actions: Optional[List[Union[WaitAction, ScreenshotAction, ClickAction, WriteAction, PressAction, ScrollAction, ScrapeAction, ExecuteJavascriptAction]]] = None,
@@ -1862,6 +1884,7 @@ class FirecrawlApp:
             *,
             max_urls: Optional[int] = None,
             show_full_text: Optional[bool] = None,
+            cache: Optional[bool] = None,
             experimental_stream: Optional[bool] = None) -> GenerateLLMsTextStatusResponse:
         """
         Generate LLMs.txt for a given URL and poll until completion.
@@ -1870,6 +1893,7 @@ class FirecrawlApp:
             url (str): Target URL to generate LLMs.txt from
             max_urls (Optional[int]): Maximum URLs to process (default: 10)
             show_full_text (Optional[bool]): Include full text in output (default: False)
+            cache (Optional[bool]): Whether to use cached content if available (default: True)
             experimental_stream (Optional[bool]): Enable experimental streaming
 
         Returns:
@@ -1885,6 +1909,7 @@ class FirecrawlApp:
         params = GenerateLLMsTextParams(
             maxUrls=max_urls,
             showFullText=show_full_text,
+            cache=cache,
             __experimental_stream=experimental_stream
         )
 
@@ -1892,6 +1917,7 @@ class FirecrawlApp:
             url,
             max_urls=max_urls,
             show_full_text=show_full_text,
+            cache=cache,
             experimental_stream=experimental_stream
         )
         
@@ -1927,6 +1953,7 @@ class FirecrawlApp:
             *,
             max_urls: Optional[int] = None,
             show_full_text: Optional[bool] = None,
+            cache: Optional[bool] = None,
             experimental_stream: Optional[bool] = None) -> GenerateLLMsTextResponse:
         """
         Initiate an asynchronous LLMs.txt generation operation.
@@ -1935,6 +1962,7 @@ class FirecrawlApp:
             url (str): The target URL to generate LLMs.txt from. Must be a valid HTTP/HTTPS URL.
             max_urls (Optional[int]): Maximum URLs to process (default: 10)
             show_full_text (Optional[bool]): Include full text in output (default: False)
+            cache (Optional[bool]): Whether to use cached content if available (default: True)
             experimental_stream (Optional[bool]): Enable experimental streaming
 
         Returns:
@@ -1949,6 +1977,7 @@ class FirecrawlApp:
         params = GenerateLLMsTextParams(
             maxUrls=max_urls,
             showFullText=show_full_text,
+            cache=cache,
             __experimental_stream=experimental_stream
         )
 
@@ -2537,6 +2566,7 @@ class CrawlWatcher:
         """
         async with websockets.connect(
             self.ws_url,
+            max_size=None,
             additional_headers=[("Authorization", f"Bearer {self.app.api_key}")]
         ) as websocket:
             await self._listen(websocket)
@@ -2835,7 +2865,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
             skip_tls_verification: Optional[bool] = None,
             remove_base64_images: Optional[bool] = None,
             block_ads: Optional[bool] = None,
-            proxy: Optional[Literal["basic", "stealth"]] = None,
+            proxy: Optional[Literal["basic", "stealth", "auto"]] = None,
             extract: Optional[JsonConfig] = None,
             json_options: Optional[JsonConfig] = None,
             actions: Optional[List[Union[WaitAction, ScreenshotAction, ClickAction, WriteAction, PressAction, ScrollAction, ScrapeAction, ExecuteJavascriptAction]]] = None,
@@ -2856,7 +2886,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
           skip_tls_verification (Optional[bool]): Skip TLS verification
           remove_base64_images (Optional[bool]): Remove base64 images
           block_ads (Optional[bool]): Block ads
-          proxy (Optional[Literal["basic", "stealth"]]): Proxy type (basic/stealth)
+          proxy (Optional[Literal["basic", "stealth", "auto"]]): Proxy type (basic/stealth)
           extract (Optional[JsonConfig]): Content extraction settings
           json_options (Optional[JsonConfig]): JSON extraction settings
           actions (Optional[List[Union[WaitAction, ScreenshotAction, ClickAction, WriteAction, PressAction, ScrollAction, ScrapeAction, ExecuteJavascriptAction]]]): Actions to perform
@@ -2964,7 +2994,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
         skip_tls_verification: Optional[bool] = None,
         remove_base64_images: Optional[bool] = None,
         block_ads: Optional[bool] = None,
-        proxy: Optional[Literal["basic", "stealth"]] = None,
+        proxy: Optional[Literal["basic", "stealth", "auto"]] = None,
         extract: Optional[JsonConfig] = None,
         json_options: Optional[JsonConfig] = None,
         actions: Optional[List[Union[WaitAction, ScreenshotAction, ClickAction, WriteAction, PressAction, ScrollAction, ScrapeAction, ExecuteJavascriptAction]]] = None,
@@ -3103,7 +3133,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
         skip_tls_verification: Optional[bool] = None,
         remove_base64_images: Optional[bool] = None,
         block_ads: Optional[bool] = None,
-        proxy: Optional[Literal["basic", "stealth"]] = None,
+        proxy: Optional[Literal["basic", "stealth", "auto"]] = None,
         extract: Optional[JsonConfig] = None,
         json_options: Optional[JsonConfig] = None,
         actions: Optional[List[Union[WaitAction, ScreenshotAction, ClickAction, WriteAction, PressAction, ScrollAction, ScrapeAction, ExecuteJavascriptAction]]] = None,
@@ -3240,6 +3270,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
         deduplicate_similar_urls: Optional[bool] = None,
         ignore_query_parameters: Optional[bool] = None,
         regex_on_full_url: Optional[bool] = None,
+        delay: Optional[int] = None,
         poll_interval: Optional[int] = 2,
         idempotency_key: Optional[str] = None,
         **kwargs
@@ -3262,6 +3293,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
             deduplicate_similar_urls (Optional[bool]): Remove similar URLs
             ignore_query_parameters (Optional[bool]): Ignore URL parameters
             regex_on_full_url (Optional[bool]): Apply regex to full URLs
+            delay (Optional[int]): Delay in seconds between scrapes
             poll_interval (Optional[int]): Seconds between status checks (default: 2)
             idempotency_key (Optional[str]): Unique key to prevent duplicate requests
             **kwargs: Additional parameters to pass to the API
@@ -3307,6 +3339,8 @@ class AsyncFirecrawlApp(FirecrawlApp):
             crawl_params['ignoreQueryParameters'] = ignore_query_parameters
         if regex_on_full_url is not None:
             crawl_params['regexOnFullURL'] = regex_on_full_url
+        if delay is not None:
+            crawl_params['delay'] = delay
 
         # Add any additional kwargs
         crawl_params.update(kwargs)
@@ -3348,6 +3382,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
         deduplicate_similar_urls: Optional[bool] = None,
         ignore_query_parameters: Optional[bool] = None,
         regex_on_full_url: Optional[bool] = None,
+        delay: Optional[int] = None,
         poll_interval: Optional[int] = 2,
         idempotency_key: Optional[str] = None,
         **kwargs
@@ -3412,6 +3447,8 @@ class AsyncFirecrawlApp(FirecrawlApp):
             crawl_params['ignoreQueryParameters'] = ignore_query_parameters
         if regex_on_full_url is not None:
             crawl_params['regexOnFullURL'] = regex_on_full_url
+        if delay is not None:
+            crawl_params['delay'] = delay
 
         # Add any additional kwargs
         crawl_params.update(kwargs)
@@ -3986,6 +4023,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
             url,
             max_urls=max_urls,
             show_full_text=show_full_text,
+            cache=cache,
             experimental_stream=experimental_stream
         )
         if not response.get('success') or 'id' not in response:
@@ -4012,6 +4050,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
             *,
             max_urls: Optional[int] = None,
             show_full_text: Optional[bool] = None,
+            cache: Optional[bool] = None,
             experimental_stream: Optional[bool] = None) -> GenerateLLMsTextResponse:
         """
         Initiate an asynchronous LLMs.txt generation job without waiting for completion.
@@ -4020,6 +4059,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
             url (str): Target URL to generate LLMs.txt from
             max_urls (Optional[int]): Maximum URLs to process (default: 10)
             show_full_text (Optional[bool]): Include full text in output (default: False)
+            cache (Optional[bool]): Whether to use cached content if available (default: True)
             experimental_stream (Optional[bool]): Enable experimental streaming
 
         Returns:
@@ -4042,6 +4082,7 @@ class AsyncFirecrawlApp(FirecrawlApp):
         params = GenerateLLMsTextParams(
             maxUrls=max_urls,
             showFullText=show_full_text,
+            cache=cache,
             __experimental_stream=experimental_stream
         )
 
